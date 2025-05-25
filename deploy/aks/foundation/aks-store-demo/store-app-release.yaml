@@ -2,15 +2,15 @@ apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: store
-  namespace: demo-app # Or your target namespace
+  namespace: demo-app 
 spec:
   interval: 15m
   chart:
     spec:
-      chart: ./helm/store-app # Assuming a local chart, adjust if it's from a HelmRepository
+      chart: ./helm/store-app
       sourceRef:
         kind: GitRepository
-        name: aks-store-ops # Must match the name in app-source.yaml
+        name: aks-store-ops 
         namespace: flux-system
   values:
     rabbitmq:
