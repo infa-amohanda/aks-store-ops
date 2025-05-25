@@ -1,0 +1,49 @@
+{{- if .Values.storeFront.ingress.enabled -}}
+apiVersion: {{ include "store-app.ingress.apiVersion" . }}
+kind: Ingress
+metadata:
+  name: {{ include "store-app.fullname" . }}-store-front
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: store-front
+  {{- with .Values.storeFront.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if and (.Values.storeFront.ingress.className) (eq (include "store-app.ingress.isStable" .) "true") }}
+  ingressClassName: {{ .Values.storeFront.ingress.className }}
+  {{- end }}
+  rules:
+    {{- range .Values.storeFront.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            {{- if eq (include "store-app.ingress.supportsPathType" $) "true" }}
+            pathType: {{ .pathType }}
+            {{- end }}
+            backend:
+              {{- if eq (include "store-app.ingress.isStable" $) "true" }}
+              service:
+                name: {{ include "store-app.fullname" $ }}-store-front
+                port:
+                  number: {{ $.Values.storeFront.service.port }}
+              {{- else }}
+              serviceName: {{ include "store-app.fullname" $ }}-store-front
+              servicePort: {{ $.Values.storeFront.service.port }}
+              {{- end }}
+          {{- end }}
+    {{- end }}
+  {{- if .Values.storeFront.ingress.tls }}
+  tls:
+    {{- range .Values.storeFront.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+{{- end }}

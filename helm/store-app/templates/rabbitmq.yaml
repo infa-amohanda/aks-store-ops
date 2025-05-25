@@ -1,0 +1,93 @@
+{{- if .Values.rabbitmq.enabled -}}
+apiVersion: {{ include "store-app.statefulset.apiVersion" . }}
+kind: StatefulSet
+metadata:
+  name: {{ include "store-app.fullname" . }}-rabbitmq
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  serviceName: {{ .Values.rabbitmq.service.name }}
+  replicas: {{ .Values.rabbitmq.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "store-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rabbitmq
+  template:
+    metadata:
+      labels:
+        {{- include "store-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: rabbitmq
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "store-app.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      containers:
+      - name: rabbitmq
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ .Values.rabbitmq.image.repository }}:{{ .Values.rabbitmq.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.rabbitmq.image.pullPolicy }}
+        ports:
+        - name: rabbitmq-amqp
+          containerPort: {{ .Values.rabbitmq.service.amqpPort }}
+        - name: rabbitmq-http
+          containerPort: {{ .Values.rabbitmq.service.httpPort }}
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          value: {{ .Values.rabbitmq.credentials.username | quote }}
+        - name: RABBITMQ_DEFAULT_PASS
+          value: {{ .Values.rabbitmq.credentials.password | quote }}
+        resources:
+          {{- toYaml .Values.rabbitmq.resources | nindent 10 }}
+        volumeMounts:
+        - name: rabbitmq-enabled-plugins
+          mountPath: /etc/rabbitmq/enabled_plugins
+          subPath: enabled_plugins
+      volumes:
+      - name: rabbitmq-enabled-plugins
+        configMap:
+          name: {{ include "store-app.fullname" . }}-rabbitmq-config
+          items:
+          - key: rabbitmq_enabled_plugins
+            path: enabled_plugins
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "store-app.fullname" . }}-rabbitmq-config
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+data:
+  rabbitmq_enabled_plugins: |
+    {{ .Values.rabbitmq.configMap.enabledPlugins }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "store-app.fullname" . }}-{{ .Values.rabbitmq.service.name }}
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+spec:
+  type: {{ .Values.rabbitmq.service.type }}
+  ports:
+    - port: {{ .Values.rabbitmq.service.amqpPort }}
+      targetPort: {{ .Values.rabbitmq.service.amqpPort }}
+      protocol: TCP
+      name: rabbitmq-amqp
+    - port: {{ .Values.rabbitmq.service.httpPort }}
+      targetPort: {{ .Values.rabbitmq.service.httpPort }}
+      protocol: TCP
+      name: rabbitmq-http
+  selector:
+    {{- include "store-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rabbitmq
+{{- end }}

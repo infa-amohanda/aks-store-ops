@@ -1,0 +1,87 @@
+{{- if .Values.orderService.enabled -}}
+apiVersion: {{ include "store-app.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "store-app.fullname" . }}-order-service
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: order-service
+spec:
+  replicas: {{ .Values.orderService.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "store-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: order-service
+  template:
+    metadata:
+      labels:
+        {{- include "store-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: order-service
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "store-app.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      containers:
+        - name: order-service
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.orderService.image.repository }}:{{ .Values.orderService.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.orderService.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.orderService.service.port }}
+              protocol: TCP
+          env:
+            - name: ORDER_QUEUE_HOSTNAME
+              value: {{ printf "%s-rabbitmq" (include "store-app.fullname" .) }}
+            - name: ORDER_QUEUE_PORT
+              value: {{ .Values.rabbitmq.service.amqpPort | quote }}
+            - name: ORDER_QUEUE_USERNAME
+              value: {{ .Values.rabbitmq.credentials.username | quote }}
+            - name: ORDER_QUEUE_PASSWORD
+              value: {{ .Values.rabbitmq.credentials.password | quote }}
+            - name: ORDER_QUEUE_NAME
+              value: {{ .Values.orderService.env.queueName | quote }}
+            - name: FASTIFY_ADDRESS
+              value: {{ .Values.orderService.env.fastifyAddress | quote }}
+          resources:
+            {{- toYaml .Values.orderService.resources | nindent 12 }}
+          startupProbe:
+            {{- toYaml .Values.orderService.probes.startup | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.orderService.probes.readiness | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.orderService.probes.liveness | nindent 12 }}
+      {{- if .Values.orderService.initContainers.waitForRabbitmq.enabled }}
+      initContainers:
+        - name: wait-for-rabbitmq
+          image: "{{ .Values.orderService.initContainers.waitForRabbitmq.image }}"
+          command: ['sh', '-c', 'until nc -zv {{ include "store-app.fullname" . }}-{{ .Values.rabbitmq.service.name }} {{ .Values.rabbitmq.service.amqpPort }}; do echo waiting for rabbitmq; sleep 2; done;']
+          resources:
+            {{- toYaml .Values.orderService.initContainers.waitForRabbitmq.resources | nindent 12 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: order-service
+spec:
+  type: {{ .Values.orderService.service.type }}
+  ports:
+    - port: {{ .Values.orderService.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "store-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: order-service
+{{- end }}

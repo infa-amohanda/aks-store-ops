@@ -1,0 +1,71 @@
+{{- if .Values.storeFront.enabled -}}
+apiVersion: {{ include "store-app.deployment.apiVersion" . }}
+kind: Deployment
+metadata:
+  name: {{ include "store-app.fullname" . }}-store-front
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: store-front
+spec:
+  replicas: {{ .Values.storeFront.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "store-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: store-front
+  template:
+    metadata:
+      labels:
+        {{- include "store-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: store-front
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "store-app.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      containers:
+        - name: store-front
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.storeFront.image.repository }}:{{ .Values.storeFront.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.storeFront.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.storeFront.service.targetPort }}
+              protocol: TCP
+          env:
+            - name: VUE_APP_ORDER_SERVICE_URL
+              value: "http://order-service:{{ .Values.orderService.service.port }}/" # Removed fullname prefix
+            - name: VUE_APP_PRODUCT_SERVICE_URL
+              value: "http://product-service:{{ .Values.productService.service.port }}/" # Removed fullname prefix
+          resources:
+            {{- toYaml .Values.storeFront.resources | nindent 12 }}
+          startupProbe:
+            {{- toYaml .Values.storeFront.probes.startup | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.storeFront.probes.readiness | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.storeFront.probes.liveness | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "store-app.fullname" . }}-store-front
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: store-front
+spec:
+  type: {{ .Values.storeFront.service.type }}
+  ports:
+    - port: {{ .Values.storeFront.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "store-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: store-front
+{{- end }}
