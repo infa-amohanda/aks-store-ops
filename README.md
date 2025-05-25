@@ -15,5 +15,3 @@ This repository contains the infrastructure as code and CI/CD pipelines to provi
 ## Contributing
 
 Please refer to CONTRIBUTING.md for details on how to contribute to this project.aaa
-asd
-aa
