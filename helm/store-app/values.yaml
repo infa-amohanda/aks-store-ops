@@ -196,10 +196,10 @@ storeFront:
       periodSeconds: 3
   ingress:
     enabled: true
-    className: "nginx" # Changed for Minikube compatibility
+    className: "nginx" # Updated
     annotations: {}
     hosts:
-      - # host: chart-example.local # Commented out or removed
+      - host: "" # Explicitly set for "any host" to match the Ingress spec
         paths:
           - path: /
             pathType: Prefix
