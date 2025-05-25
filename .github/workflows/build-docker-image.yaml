@@ -47,13 +47,12 @@ jobs:
 
       - name: Update image tag in HelmRelease
         run: |
-          set -x
           git clone https://github.com/infa-amohanda/aks-store-ops.git # Clone the ops repository
           cd aks-store-ops
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git remote set-url origin https://infa-amohanda:${{ secrets.GITPAT }}@github.com/infa-amohanda/aks-store-ops.git
-          
+
           IMAGE_TAG="${{ env.EPOCH_TIMESTAMP }}" # Use generated epoch timestamp
           echo "Updating image tag to: $IMAGE_TAG"
 
@@ -73,5 +72,3 @@ jobs:
             git commit -m "Update application image tag to ${{ env.EPOCH_TIMESTAMP }}" # Use generated epoch timestamp
             git push
           fi
-
-
