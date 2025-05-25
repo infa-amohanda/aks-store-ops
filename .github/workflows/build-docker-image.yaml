@@ -67,8 +67,8 @@ jobs:
       - name: Commit and push changes to ops repo
         run: |
           git remote set-url origin https://infa-amohanda:${GITHUB_TOKEN}@github.com/infa-amohanda/aks-store-ops.git
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git config --global user.name 'infa-amohanda'
+          git config --global user.email 'infa-amohanda@github.com'
           git add deploy/aks/foundation/aks-store-demo/store-app-release.yaml
           # Check if there are changes to commit
           if git diff --staged --quiet; then
