@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint_and_validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Add steps for linting and validating your IaC (e.g., Terraform fmt, validate)
+      # Example for Terraform:
+      # - name: Setup Terraform
+      #   uses: hashicorp/setup-terraform@v2
+      #   with:
+      #     terraform_version: 1.0.0 # Specify your Terraform version
+
+      # - name: Terraform Format Check
+      #   run: terraform fmt -check -recursive
+      #   working-directory: ./provision/aks
+
+      # - name: Terraform Init
+      #   run: terraform init
+      #   working-directory: ./provision/aks
+
+      # - name: Terraform Validate
+      #   run: terraform validate
+      #   working-directory: ./provision/aks
+
+      - name: Placeholder Step
+        run: echo "Add linting and validation steps here"

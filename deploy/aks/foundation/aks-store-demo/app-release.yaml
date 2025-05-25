@@ -1,0 +1,18 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: aks-store-demo
+  namespace: default # Or your target namespace
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: ./deploy/aks/helm/simple-app # Assuming a local chart, adjust if it's from a HelmRepository
+      sourceRef:
+        kind: GitRepository
+        name: aks-store-demo-app # Must match the name in app-source.yaml
+        namespace: flux-system
+  values:
+    image:
+      repository: youracr.azurecr.io/aks-store-demo # Replace with your image
+      tag: latest
