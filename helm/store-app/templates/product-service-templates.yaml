@@ -1,0 +1,76 @@
+{{- if .Values.productService.enabled -}}
+# Service for Product Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "store-app.fullname" . }}-{{ .Values.productService.service.name }}
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: product-service
+spec:
+  type: {{ .Values.productService.service.type }}
+  ports:
+    - port: {{ .Values.productService.service.port }}
+      targetPort: {{ .Values.productService.service.port }}
+      name: http
+  selector:
+    {{- include "store-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: product-service
+---
+# Deployment for Product Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "store-app.fullname" . }}-product-service
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: product-service
+spec:
+  replicas: {{ .Values.productService.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "store-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: product-service
+  template:
+    metadata:
+      labels:
+        {{- include "store-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: product-service
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "store-app.serviceAccountName" . }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      containers:
+        - name: product-service
+          image: "{{ .Values.productService.image.repository }}:{{ .Values.productService.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.productService.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.productService.service.port }}
+          env:
+            - name: AI_SERVICE_URL
+              value: {{ .Values.productService.env.aiServiceUrl | quote }}
+          resources:
+            {{- toYaml .Values.productService.resources | nindent 12 }}
+          {{- with .Values.productService.probes.readiness }}
+          readinessProbe:
+            httpGet:
+              path: {{ .httpGet.path }}
+              port: {{ .httpGet.port }}
+            failureThreshold: {{ .failureThreshold }}
+            initialDelaySeconds: {{ .initialDelaySeconds }}
+            periodSeconds: {{ .periodSeconds }}
+          {{- end }}
+          {{- with .Values.productService.probes.liveness }}
+          livenessProbe:
+            httpGet:
+              path: {{ .httpGet.path }}
+              port: {{ .httpGet.port }}
+            failureThreshold: {{ .failureThreshold }}
+            initialDelaySeconds: {{ .initialDelaySeconds }}
+            periodSeconds: {{ .periodSeconds }}
+          {{- end }}
+{{- end }}

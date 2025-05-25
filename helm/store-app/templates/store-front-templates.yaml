@@ -1,0 +1,127 @@
+{{- if .Values.storeFront.enabled -}}
+# Service for Store Front
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "store-app.fullname" . }}-{{ .Values.storeFront.service.name }}
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: store-front
+spec:
+  type: {{ .Values.storeFront.service.type }}
+  ports:
+    - port: {{ .Values.storeFront.service.port }}
+      targetPort: {{ .Values.storeFront.service.targetPort }}
+      name: http
+  selector:
+    {{- include "store-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: store-front
+---
+# Deployment for Store Front
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "store-app.fullname" . }}-store-front
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: store-front
+spec:
+  replicas: {{ .Values.storeFront.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "store-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: store-front
+  template:
+    metadata:
+      labels:
+        {{- include "store-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: store-front
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "store-app.serviceAccountName" . }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      containers:
+        - name: store-front
+          image: "{{ .Values.storeFront.image.repository }}:{{ .Values.storeFront.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.storeFront.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.storeFront.service.targetPort }}
+              name: store-front
+          env:
+            - name: VUE_APP_ORDER_SERVICE_URL
+              value: {{ printf "http://%s-%s:%s/" (include "store-app.fullname" .) .Values.orderService.service.name .Values.orderService.service.port | quote }}
+            - name: VUE_APP_PRODUCT_SERVICE_URL
+              value: {{ printf "http://%s-%s:%s/" (include "store-app.fullname" .) .Values.productService.service.name .Values.productService.service.port | quote }}
+          resources:
+            {{- toYaml .Values.storeFront.resources | nindent 12 }}
+          {{- with .Values.storeFront.probes.startup }}
+          startupProbe:
+            httpGet:
+              path: {{ .httpGet.path }}
+              port: {{ .httpGet.port }}
+            failureThreshold: {{ .failureThreshold }}
+            initialDelaySeconds: {{ .initialDelaySeconds }}
+            periodSeconds: {{ .periodSeconds }}
+          {{- end }}
+          {{- with .Values.storeFront.probes.readiness }}
+          readinessProbe:
+            httpGet:
+              path: {{ .httpGet.path }}
+              port: {{ .httpGet.port }}
+            failureThreshold: {{ .failureThreshold }}
+            initialDelaySeconds: {{ .initialDelaySeconds }}
+            periodSeconds: {{ .periodSeconds }}
+          {{- end }}
+          {{- with .Values.storeFront.probes.liveness }}
+          livenessProbe:
+            httpGet:
+              path: {{ .httpGet.path }}
+              port: {{ .httpGet.port }}
+            failureThreshold: {{ .failureThreshold }}
+            initialDelaySeconds: {{ .initialDelaySeconds }}
+            periodSeconds: {{ .periodSeconds }}
+          {{- end }}
+---
+{{- if .Values.storeFront.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "store-app.fullname" . }}-store-front
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: store-front
+  annotations:
+    {{- toYaml .Values.storeFront.ingress.annotations | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.storeFront.ingress.className }}
+  rules:
+    {{- range .Values.storeFront.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "store-app.fullname" $ }}-{{ $.Values.storeFront.service.name }}
+                port:
+                  number: {{ $.Values.storeFront.service.port }}
+          {{- end }}
+    {{- end }}
+  {{- if .Values.storeFront.ingress.tls }}
+  tls:
+    {{- range .Values.storeFront.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}

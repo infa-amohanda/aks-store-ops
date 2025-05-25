@@ -7,7 +7,7 @@ spec:
   interval: 5m
   chart:
     spec:
-      chart: ./helm/simple-app # Assuming a local chart, adjust if it's from a HelmRepository
+      chart: ./helm/store-app # Assuming a local chart, adjust if it's from a HelmRepository
       sourceRef:
         kind: GitRepository
         name: aks-store-ops # Must match the name in app-source.yaml

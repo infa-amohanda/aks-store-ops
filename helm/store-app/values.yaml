@@ -1,0 +1,246 @@
+# Global settings
+nameOverride: ""
+fullnameOverride: ""
+
+# Common settings for all components
+imagePullSecrets: []
+nodeSelector:
+  "kubernetes.io/os": linux
+podAnnotations: {}
+podSecurityContext: {}
+securityContext: {}
+#  capabilities:
+#    drop:
+#    - ALL
+#  readOnlyRootFilesystem: true
+#  runAsNonRoot: true
+#  runAsUser: 1000
+
+# RabbitMQ component
+rabbitmq:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: mcr.microsoft.com/mirror/docker/library/rabbitmq
+    tag: "3.10-management-alpine"
+    pullPolicy: IfNotPresent
+  service:
+    name: rabbitmq
+    type: ClusterIP
+    amqpPort: 5672
+    httpPort: 15672
+  credentials:
+    username: "username" # Consider using secrets for production
+    password: "password" # Consider using secrets for production
+  resources:
+    requests:
+      cpu: 10m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  persistence: {} # Add persistence configuration if needed, e.g. size, storageClass
+  # Example for persistence:
+  # persistence:
+  #   enabled: true
+  #   storageClass: "default" # Or your specific storage class
+  #   size: 8Gi
+  configMap:
+    enabledPlugins: "[rabbitmq_management,rabbitmq_prometheus,rabbitmq_amqp1_0]."
+
+# Order Service component
+orderService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/azure-samples/aks-store-demo/order-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    name: order-service
+    type: ClusterIP
+    port: 3000
+  env:
+    queueName: "orders"
+    fastifyAddress: "0.0.0.0"
+  # RabbitMQ connection details are taken from the rabbitmq section if it's enabled
+  # Or can be overridden here if rabbitmq is external or managed differently
+  # rabbitmqHost: "rabbitmq" # Defaults to rabbitmq.service.name if rabbitmq.enabled
+  # rabbitmqPort: "5672"   # Defaults to rabbitmq.service.amqpPort if rabbitmq.enabled
+  # rabbitmqUsername: "username" # Defaults to rabbitmq.credentials.username if rabbitmq.enabled
+  # rabbitmqPassword: "password" # Defaults to rabbitmq.credentials.password if rabbitmq.enabled
+  resources:
+    requests:
+      cpu: 1m
+      memory: 50Mi
+    limits:
+      cpu: 75m
+      memory: 128Mi
+  probes:
+    startup:
+      httpGet:
+        path: /health
+        port: 3000
+      failureThreshold: 5
+      initialDelaySeconds: 20
+      periodSeconds: 10
+    readiness:
+      httpGet:
+        path: /health
+        port: 3000
+      failureThreshold: 3
+      initialDelaySeconds: 3
+      periodSeconds: 5
+    liveness:
+      httpGet:
+        path: /health
+        port: 3000
+      failureThreshold: 5
+      initialDelaySeconds: 3
+      periodSeconds: 3
+  initContainers:
+    waitForRabbitmq:
+      enabled: true # Depends on rabbitmq.enabled
+      image: busybox
+      command: ['sh', '-c', 'until nc -zv {{ include "store-app.fullname" . }}-{{ .Values.rabbitmq.service.name }} {{ .Values.rabbitmq.service.amqpPort }}; do echo waiting for rabbitmq; sleep 2; done;']
+      resources:
+        requests:
+          cpu: 1m
+          memory: 50Mi
+        limits:
+          cpu: 75m
+          memory: 128Mi
+
+# Product Service component
+productService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/azure-samples/aks-store-demo/product-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    name: product-service
+    type: ClusterIP
+    port: 3002
+  env:
+    aiServiceUrl: "http://ai-service:5001/" # Configure ai-service details if needed
+  resources:
+    requests:
+      cpu: 1m
+      memory: 1Mi
+    limits:
+      cpu: 2m
+      memory: 20Mi
+  probes:
+    readiness:
+      httpGet:
+        path: /health
+        port: 3002
+      failureThreshold: 3
+      initialDelaySeconds: 3
+      periodSeconds: 5
+    liveness:
+      httpGet:
+        path: /health
+        port: 3002
+      failureThreshold: 5
+      initialDelaySeconds: 3
+      periodSeconds: 3
+
+# Store Front component
+storeFront:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/azure-samples/aks-store-demo/store-front
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    name: store-front
+    type: ClusterIP # Can be LoadBalancer if direct external access is needed without Ingress
+    port: 80
+    targetPort: 8080
+  # Service URLs are typically derived from other enabled services
+  # Or can be overridden here
+  # orderServiceUrl: "http://order-service:3000/" # Defaults if orderService.enabled
+  # productServiceUrl: "http://product-service:3002/" # Defaults if productService.enabled
+  resources:
+    requests:
+      cpu: 1m
+      memory: 200Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+  probes:
+    startup:
+      httpGet:
+        path: /health
+        port: 8080
+      failureThreshold: 3
+      initialDelaySeconds: 5
+      periodSeconds: 5
+    readiness:
+      httpGet:
+        path: /health
+        port: 8080
+      failureThreshold: 3
+      initialDelaySeconds: 3
+      periodSeconds: 3
+    liveness:
+      httpGet:
+        path: /health
+        port: 8080
+      failureThreshold: 5
+      initialDelaySeconds: 3
+      periodSeconds: 3
+  ingress:
+    enabled: true
+    className: "webapprouting.kubernetes.azure.com"
+    annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+    hosts:
+      - host: chart-example.local # Replace with your desired hostname
+        paths:
+          - path: /
+            pathType: Prefix
+            # serviceName: store-front # Derived
+            # servicePort: 80        # Derived
+    tls: []
+    #  - secretName: chart-example-tls
+    #    hosts:
+    #      - chart-example.local
+
+# AI Service (Placeholder - not defined in the original YAML, but referenced)
+# If you have an AI service, configure it here or ensure it's deployed separately.
+aiService:
+  enabled: false # Set to true if you want to deploy a placeholder AI service
+  # image:
+  #   repository: your-ai-service-image
+  #   tag: latest
+  #   pullPolicy: IfNotPresent
+  # service:
+  #   name: ai-service
+  #   type: ClusterIP
+  #   port: 5001
+  # resources: {}
+
+# Service account settings (can be global or per-component if needed)
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "" # If not set, a name is generated using the fullname template
+
+# Autoscaling (can be global or per-component)
+# For per-component HPA, you would define 'autoscaling' within each component's section
+autoscaling:
+  enabled: false # Global toggle, can be overridden per component
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Tolerations and Affinity (can be global or per-component)
+tolerations: []
+affinity: {}
