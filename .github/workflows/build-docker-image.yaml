@@ -12,7 +12,7 @@ jobs:
       - name: Checkout Application Repository
         uses: actions/checkout@v4
         with:
-          repository: https://github.com/Azure-Samples/aks-store-demo.git # e.g., your-org/app-repo-name
+          repository: Azure-Samples/aks-store-demo # e.g., your-org/app-repo-name
           token: ${{ secrets.GITPAT }}    # PAT with read access to the app repo
           ref: main
 
