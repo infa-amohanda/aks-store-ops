@@ -27,5 +27,5 @@ spec:
         tag: latest
     storeFront:
       image:
-        repository: ghcr.io/azure-samples/aks-store-demo/store-front
-        tag: latest
+        repository: amohanda/demo-store-front
+        tag: 1748199064

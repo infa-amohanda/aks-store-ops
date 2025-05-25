@@ -47,9 +47,9 @@ jobs:
 
       - name: Checkout Ops Repository (aks-store-ops)
         uses: actions/checkout@v4
-        with:
-          # This token is necessary to push changes back to this ops repository
-          token: ${{ secrets.GITPAT }} # PAT with write access to this aks-store-ops repo
+        # with:
+        #   # This token is necessary to push changes back to this ops repository
+        #   token: ${{ secrets.GITPAT }} # PAT with write access to this aks-store-ops repo
 
       - name: Update image tag in HelmRelease
         run: |
