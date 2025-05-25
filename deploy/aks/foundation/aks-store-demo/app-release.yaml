@@ -4,7 +4,7 @@ metadata:
   name: aks-store-demo
   namespace: demo-app # Or your target namespace
 spec:
-  interval: 5m
+  interval: 15m
   chart:
     spec:
       chart: ./helm/store-app # Assuming a local chart, adjust if it's from a HelmRepository
