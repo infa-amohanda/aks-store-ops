@@ -62,13 +62,13 @@ jobs:
           yq e '.spec.values.storeFront.image.tag = strenv(IMAGE_TAG)' -i deploy/aks/foundation/aks-store-demo/store-app-release.yaml
 
           echo "Updated app-release.yaml content:"
-          cat deploy/aks/foundation/aks-store-demo/app-release.yaml
+          cat deploy/aks/foundation/aks-store-demo/store-app-release.yaml
 
       - name: Commit and push changes to ops repo
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add deploy/aks/foundation/aks-store-demo/app-release.yaml
+          git add deploy/aks/foundation/aks-store-demo/store-app-release.yaml
           # Check if there are changes to commit
           if git diff --staged --quiet; then
             echo "No changes to app-release.yaml."
