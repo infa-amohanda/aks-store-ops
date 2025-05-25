@@ -52,7 +52,7 @@ jobs:
           cd aks-store-ops
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git remote set-url origin https://infa-amohanda:{{ secrets.GITPAT }}@github.com/infa-amohanda/aks-store-ops.git
+          git remote set-url origin https://infa-amohanda:${{ secrets.GITPAT }}@github.com/infa-amohanda/aks-store-ops.git
           
           IMAGE_TAG="${{ env.EPOCH_TIMESTAMP }}" # Use generated epoch timestamp
           echo "Updating image tag to: $IMAGE_TAG"
