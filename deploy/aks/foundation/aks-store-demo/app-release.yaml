@@ -12,7 +12,7 @@ spec:
         kind: GitRepository
         name: aks-store-ops # Must match the name in app-source.yaml
         namespace: flux-system
-  values:
-    image:
-      repository: youracr.azurecr.io/aks-store-ops # Replace with your image
-      tag: latest
+  # values:
+  #   image:
+  #     repository: youracr.azurecr.io/aks-store-ops # Replace with your image
+  #     tag: latest
