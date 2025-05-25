@@ -68,7 +68,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git remote set-url origin https://infa-amohanda:${{ secrets.GITPAT }}@github.com/infa-amohanda/aks-store-ops.git
+          git remote set-url origin https://infa-amohanda:{{ secrets.GITPAT }}@github.com/infa-amohanda/aks-store-ops.git
           git add deploy/aks/foundation/aks-store-demo/store-app-release.yaml
           # Check if there are changes to commit
           if git diff --staged --quiet; then
