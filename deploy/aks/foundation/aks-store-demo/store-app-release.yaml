@@ -28,4 +28,4 @@ spec:
     storeFront:
       image:
         repository: amohanda/demo-store-front
-        tag: "1748199795"
+        tag: "1748204852"
