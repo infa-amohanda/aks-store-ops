@@ -3,6 +3,7 @@ name: Build Docker Image from App Repo
 on:
   repository_dispatch:
     types: [app-repo-main-updated]
+  workflow_dispatch: # Added for manual trigger
 
 jobs:
   build-and-update-deployment:
@@ -11,28 +12,35 @@ jobs:
       - name: Checkout Application Repository
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.event.client_payload.repository }} # e.g., your-org/app-repo-name
-          token: ${{ secrets.PAT_FOR_APP_REPO_CHECKOUT }}    # PAT with read access to the app repo
-          ref: ${{ github.event.client_payload.commit_sha }}
+          repository: https://github.com/Azure-Samples/aks-store-demo.git # e.g., your-org/app-repo-name
+          token: ${{ secrets.GITPAT }}    # PAT with read access to the app repo
+          ref: main
+
+      - name: Generate Image Tag
+        id: image_tag_generator
+        run: |
+          TIMESTAMP=$(date +%s)
+          echo "EPOCH_TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+          echo "Generated image tag: $TIMESTAMP"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Azure Container Registry
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: youracr.azurecr.io # <-- TODO: Replace with your ACR login server
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          # registry: youracr.azurecr.io # Removed for Docker Hub
+          username: ${{ secrets.DOCKER_USERNAME }} # Should be your Docker Hub username
+          password: ${{ secrets.DOCKER_PASSWORD }} # Should be your Docker Hub password or access token
 
       - name: Build and push Docker image
         id: build_image
         uses: docker/build-push-action@v5
         with:
           context: . # Assumes Dockerfile is at the root of the checked-out app repo
-          file: ./Dockerfile # Assumes Dockerfile is at the root of the app repo
+          file: src/store-front/Dockerfile # Assumes Dockerfile is at the root of the app repo
           push: true
-          tags: youracr.azurecr.io/aks-store-demo:${{ github.event.client_payload.commit_sha }} # <-- TODO: Replace ACR & image name
+          tags: amohanda/demo-store-front:${{ env.EPOCH_TIMESTAMP }} # Use generated epoch timestamp
           # You can add build-args, labels etc. here if needed
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
@@ -41,15 +49,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           # This token is necessary to push changes back to this ops repository
-          token: ${{ secrets.PAT_FOR_OPS_REPO_PUSH }} # PAT with write access to this aks-store-ops repo
+          token: ${{ secrets.GITPAT }} # PAT with write access to this aks-store-ops repo
 
       - name: Update image tag in HelmRelease
         run: |
-          IMAGE_TAG="${{ github.event.client_payload.commit_sha }}"
+          IMAGE_TAG="${{ env.EPOCH_TIMESTAMP }}" # Use generated epoch timestamp
           echo "Updating image tag to: $IMAGE_TAG"
 
-          # Install yq for YAML manipulation
-          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
+          # # Install yq for YAML manipulation
+          # sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
 
           yq e '.spec.values.image.tag = strenv(IMAGE_TAG)' -i deploy/aks/foundation/aks-store-demo/app-release.yaml
 
@@ -65,6 +73,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to app-release.yaml."
           else
-            git commit -m "Update application image tag to ${{ github.event.client_payload.commit_sha }}"
+            git commit -m "Update application image tag to ${{ env.EPOCH_TIMESTAMP }}" # Use generated epoch timestamp
             git push
           fi
