@@ -1,0 +1,58 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "store-app.fullname" . }}-main
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "store-app.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "store-app.selectorLabels" . | nindent 6 }}
+  policyTypes:
+  - Ingress
+  - Egress
+
+  ingress:
+  # Allow communication from other pods within this Helm release (intra-chart)
+  - from:
+    - podSelector:
+        matchLabels:
+          {{- include "store-app.selectorLabels" . | nindent 10 }}
+
+  # Allow ingress to store-front from the Ingress Controller if Ingress is enabled for store-front
+  {{- if .Values.storeFront.enabled }}
+  {{- if .Values.storeFront.ingress.enabled }}
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          {{- range $key, $value := .Values.networkPolicy.ingressControllerNamespaceSelector }}
+          {{ $key }}: {{ $value | quote }}
+          {{- end }}
+      # podSelector: {} # Optional: further restrict to specific ingress controller pods if needed
+    ports:
+    - protocol: TCP
+      port: {{ .Values.storeFront.service.targetPort }}
+  {{- end }}
+  {{- end }}
+
+  egress:
+  # Allow communication to other pods within this Helm release (intra-chart)
+  - to:
+    - podSelector:
+        matchLabels:
+          {{- include "store-app.selectorLabels" . | nindent 10 }}
+
+  # Allow DNS lookups to any pod labeled as kube-dns in any namespace
+  - to:
+    - namespaceSelector: {} # Allows to any namespace
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns # Standard label for CoreDNS/kube-dns pods
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+{{- end }}

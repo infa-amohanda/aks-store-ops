@@ -222,6 +222,19 @@ aiService:
   #   port: 5001
   # resources: {}
 
+# NetworkPolicy settings
+networkPolicy:
+  enabled: true # Set to true to enable NetworkPolicy
+  # Labels for the namespace where your Ingress controller is running.
+  # This is used to allow ingress traffic from the Ingress controller to the store-front.
+  # Example for a common NGINX ingress controller setup:
+  # ingressControllerNamespaceSelector:
+  #   app.kubernetes.io/name: ingress-nginx
+  #   app.kubernetes.io/instance: ingress-nginx
+  # Example for Minikube's default ingress (often in kube-system or ingress-nginx namespace):
+  ingressControllerNamespaceSelector:
+    kubernetes.io/metadata.name: ingress-nginx 
+
 # Service account settings (can be global or per-component if needed)
 serviceAccount:
   create: true

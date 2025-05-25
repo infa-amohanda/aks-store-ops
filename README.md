@@ -40,8 +40,22 @@ This repository uses GitHub Actions for CI/CD. The workflows are defined in the 
 
 - **`build-docker-image.yaml`**: This workflow builds the Docker image for the application. It can be triggered manually or by a `repository_dispatch` event (e.g., when the application source code is updated). It builds the image, tags it (e.g., with an epoch timestamp), and pushes it to a Docker registry. It then updates the image tag in the HelmRelease manifest (`deploy/aks/foundation/aks-store-demo/store-app-release.yaml`) and commits the change to the ops repository.
 
-- **`update-app-image.yaml`**: (Assuming this workflow exists as it was previously mentioned or intended) This workflow is typically triggered by a `repository_dispatch` event when a new application image is available. It updates the image tag in the HelmRelease manifest (`deploy/aks/foundation/aks-store-demo/store-app-release.yaml`) to use the new image and commits the change.
+## GitOps with FluxCD
 
-## Contributing
+This repository uses FluxCD to implement GitOps, continuously synchronizing the state of your Kubernetes cluster with the configurations defined in this Git repository.
 
-Please refer to CONTRIBUTING.md for details on how to contribute to this project.aaa
+### FluxCD Components
+
+The core FluxCD components are typically bootstrapped into your cluster. The manifests for setting up Flux can be found in `deploy/aks/foundation/flux-system/`:
+
+- **`gotk-components.yaml`**: Defines the CustomResourceDefinitions (CRDs) and deployments for the FluxCD controllers (e.g., source-controller, kustomize-controller, helm-controller).
+- **`gotk-sync.yaml`**: Configures the `GitRepository` source and the `Kustomization` that tells Flux to synchronize the cluster with the contents of this repository, specifically looking at the `deploy/aks/foundation/` path.
+- **`kustomization.yaml`**: The top-level Kustomization for Flux, often pointing to other Kustomizations or resources to apply, including the HelmRelease for the application.
+
+### Application Deployment via HelmRelease
+
+The store application itself is deployed and managed by Flux using a `HelmRelease` resource.
+
+- **`deploy/aks/foundation/aks-store-demo/store-app-release.yaml`**: This manifest defines the `HelmRelease` for the `store-app`. FluxCD's helm-controller monitors this resource. When changes are made to this file (e.g., updating the image tag via the `build-docker-image.yaml` workflow) or to the Helm chart itself, Flux will automatically apply the changes to your cluster, ensuring the deployed application matches the desired state defined in Git.
+
+This GitOps approach allows for automated and auditable deployments, rollbacks, and management of your application and cluster configuration.
