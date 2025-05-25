@@ -37,8 +37,8 @@ jobs:
         id: build_image
         uses: docker/build-push-action@v5
         with:
-          context: src/store-front # Changed from .
-          file: Dockerfile           # Changed from src/store-front/Dockerfile
+          context: ./src/store-front # Build context
+          file: ./src/store-front/Dockerfile # Path to Dockerfile from repo root
           push: true
           tags: amohanda/demo-store-front:${{ env.EPOCH_TIMESTAMP }} # Use generated epoch timestamp
           # You can add build-args, labels etc. here if needed
