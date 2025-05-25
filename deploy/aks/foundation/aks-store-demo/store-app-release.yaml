@@ -2,7 +2,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: store
-  namespace: demo-app 
+  namespace: demo-app
 spec:
   interval: 15m
   chart:
@@ -10,7 +10,7 @@ spec:
       chart: ./helm/store-app
       sourceRef:
         kind: GitRepository
-        name: aks-store-ops 
+        name: aks-store-ops
         namespace: flux-system
   values:
     rabbitmq:
@@ -28,4 +28,4 @@ spec:
     storeFront:
       image:
         repository: amohanda/demo-store-front
-        tag: 1748199064
+        tag: "1748199795"

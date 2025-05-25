@@ -59,9 +59,9 @@ jobs:
           # # Install yq for YAML manipulation
           # sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
 
-          yq e '.spec.values.storeFront.image.tag = strenv(IMAGE_TAG)' -i deploy/aks/foundation/aks-store-demo/store-app-release.yaml
+          IMAGE_TAG=${IMAGE_TAG} yq e '.spec.values.storeFront.image.tag = env(IMAGE_TAG) | .spec.values.storeFront.image.tag style="double"' -i deploy/aks/foundation/aks-store-demo/store-app-release.yaml
 
-          echo "Updated app-release.yaml content:"
+          echo "Updated store-app-release.yaml content:"
           cat deploy/aks/foundation/aks-store-demo/store-app-release.yaml
 
       - name: Commit and push changes to ops repo
