@@ -1,16 +1,28 @@
 # ---
+# apiVersion: source.toolkit.fluxcd.io/v1beta1
+# kind: GitRepository
+# metadata:
+#   name: flux-system
+#   namespace: flux-system
+# spec:
+#   interval: 1m0s
+#   ref:
+#     branch: main
+#   secretRef:
+#     name: flux-system
+#   url: ssh://git@github.com/infa-amohanda/aks-store-ops.git
+
+
 apiVersion: source.toolkit.fluxcd.io/v1beta1
 kind: GitRepository
 metadata:
   name: flux-system
   namespace: flux-system
 spec:
-  interval: 1m0s
+  interval: 30s
   ref:
     branch: main
-  secretRef:
-    name: flux-system
-  url: ssh://git@github.com/infa-amohanda/aks-store-ops.git
+  url: https://github.com/infa-amohanda/aks-store-ops
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1beta1
 kind: Kustomization
