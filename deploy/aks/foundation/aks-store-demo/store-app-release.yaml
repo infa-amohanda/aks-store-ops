@@ -12,7 +12,20 @@ spec:
         kind: GitRepository
         name: aks-store-ops # Must match the name in app-source.yaml
         namespace: flux-system
-  # values:
-  #   image:
-  #     repository: youracr.azurecr.io/aks-store-ops # Replace with your image
-  #     tag: latest
+  values:
+    rabbitmq:
+      image:
+        repository: mcr.microsoft.com/mirror/docker/library/rabbitmq
+        tag: "3.10-management-alpine"
+    orderService:
+      image:
+        repository: ghcr.io/azure-samples/aks-store-demo/order-service
+        tag: latest
+    productService:
+      image:
+        repository: ghcr.io/azure-samples/aks-store-demo/product-service
+        tag: latest
+    storeFront:
+      image:
+        repository: ghcr.io/azure-samples/aks-store-demo/store-front
+        tag: latest
